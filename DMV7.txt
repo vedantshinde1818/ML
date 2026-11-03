@@ -1,5 +1,6 @@
 
 https://raw.githubusercontent.com/nawaz62/retail-sales-analysis/main/retail_sales_raw.csv
+
 import subprocess
 import sys
 
@@ -11,7 +12,7 @@ subprocess.check_call([
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_csv("sales_data.csv")
+df = pd.read_csv(r"C:\Users\vedant\Downloads\sales_data.csv")
 
 df.columns = df.columns.str.strip()
 
@@ -49,7 +50,7 @@ combined_df["Quantity"] = pd.to_numeric(
 )
 
 combined_df = combined_df.dropna(
-    subset=["OrderID", "Region", "Category", "Sales"]
+    subset=["Order_ID", "Region", "Category", "Sales"]
 )
 
 combined_df["Quantity"] = combined_df["Quantity"].fillna(0)
