@@ -1,0 +1,62 @@
+
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+
+np.random.seed(42)
+
+X = np.sort(np.random.rand(80, 1) * 10, axis=0)
+
+y = 0.5 * X.ravel()**2 - 2 * X.ravel() + 5 + np.random.randn(80) * 3
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+degrees = [1, 2, 4, 8]
+
+plt.figure(figsize=(7, 5))
+
+plt.scatter(X_train, y_train, color='gray', s=20, label='Train data', alpha=0.6)
+
+X_plot = np.linspace(0, 10, 200).reshape(-1, 1)
+
+print(f"{'Degree':>7} | {'Train R2':>9} | {'Test R2':>8} | {'Test RMSE':>10}")
+print("-" * 45)
+
+for d in degrees:
+    poly = PolynomialFeatures(degree=d)
+
+    X_train_p = poly.fit_transform(X_train)
+    X_test_p = poly.transform(X_test)
+
+    lr = LinearRegression()
+    lr.fit(X_train_p, y_train)
+
+    train_r2 = r2_score(y_train, lr.predict(X_train_p))
+
+    test_pred = lr.predict(X_test_p)
+
+    test_r2 = r2_score(y_test, test_pred)
+
+    test_rmse = np.sqrt(mean_squared_error(y_test, test_pred))
+
+    print(f"{d:>7} | {train_r2:>9.4f} | {test_r2:>8.4f} | {test_rmse:>10.3f}")
+
+    y_plot = lr.predict(poly.transform(X_plot))
+
+    plt.plot(X_plot, y_plot, label=f'Degree {d}', linewidth=2)
+
+plt.xlabel('X')
+plt.ylabel('y')
+plt.title('Polynomial Regression: Bias Variance Trade-off')
+plt.legend()
+plt.tight_layout()
+plt.savefig('a4_poly.png', dpi=130)
+plt.show()
+
+print("\nObservation: Degree 1 underfits (high bias); Degree 8 starts overfitting (high variance,")
+print("test R2 drops relative to degree 2-4 despite higher train R2).")
