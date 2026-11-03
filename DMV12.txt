@@ -1,0 +1,111 @@
+https://raw.githubusercontent.com/yashikabawra/retail-sales-analytics/main/raw_sales_data.csv
+import subprocess
+import sys
+
+subprocess.check_call([
+    sys.executable, "-m", "pip", "install",
+    "pandas", "matplotlib"
+])
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("Retail_Sales_Data.csv")
+
+df.columns = df.columns.str.strip()
+
+df = df.rename(columns={
+    "Total Sales": "Sales_Amount",
+    "Product Category": "Product_Category"
+})
+
+print("First Five Rows:")
+print(df.head())
+
+print("\nDataset Information:")
+print(df.info())
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+df["Sales_Amount"] = pd.to_numeric(
+    df["Sales_Amount"].astype(str).str.replace(
+        r"[₹,]", "", regex=True
+    ),
+    errors="coerce"
+)
+
+df = df.dropna(
+    subset=["Region", "Sales_Amount", "Product_Category"]
+)
+
+df["Region"] = df["Region"].astype(str).str.strip()
+df["Product_Category"] = (
+    df["Product_Category"].astype(str).str.strip()
+)
+
+df = df[
+    (df["Region"] != "") &
+    (df["Product_Category"] != "")
+]
+
+region_sales = df.groupby("Region")["Sales_Amount"].sum()
+region_sales = region_sales.sort_values(ascending=False)
+
+print("\nRegional Sales:")
+print(region_sales)
+
+print("\nTop Performing Region:")
+print(region_sales.idxmax(), "Total Sales:", region_sales.max())
+
+region_sales.plot(
+    kind="bar",
+    title="Total Sales by Region",
+    ylabel="Sales Amount"
+)
+
+plt.tight_layout()
+plt.show()
+
+region_sales.plot(
+    kind="pie",
+    autopct="%1.1f%%",
+    ylabel="",
+    title="Sales Share by Region"
+)
+
+plt.tight_layout()
+plt.show()
+
+pivot = df.pivot_table(
+    index="Region",
+    columns="Product_Category",
+    values="Sales_Amount",
+    aggfunc="sum",
+    fill_value=0
+)
+
+print("\nRegion by Category Pivot Table:")
+print(pivot)
+
+pivot.plot(
+    kind="bar",
+    stacked=True,
+    title="Sales by Region and Category"
+)
+
+plt.ylabel("Sales Amount")
+plt.tight_layout()
+plt.show()
+
+pivot.plot(
+    kind="bar",
+    stacked=False,
+    title="Grouped Sales by Region and Category"
+)
+
+plt.ylabel("Sales Amount")
+plt.tight_layout()
+plt.show()
+
+print("\nData Aggregation Completed Successfully!")

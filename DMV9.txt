@@ -1,0 +1,76 @@
+https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/master/data/Telco-Customer-Churn.csv
+
+import subprocess
+import sys
+
+subprocess.check_call([
+    sys.executable, "-m", "pip", "install",
+    "pandas", "numpy"
+])
+
+import pandas as pd
+import numpy as np
+import os
+
+df = pd.read_csv("Telecom_Customer_Churn.csv")
+
+df.columns = df.columns.str.strip().str.replace(" ", "_")
+
+print("First Five Rows:")
+print(df.head())
+
+print("\nDataset Information:")
+print(df.info())
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+df = df.drop_duplicates()
+
+for col in ["tenure", "MonthlyCharges", "TotalCharges"]:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+numeric_cols = df.select_dtypes(include="number").columns
+categorical_cols = df.select_dtypes(include="object").columns
+
+for col in numeric_cols:
+    df[col] = df[col].fillna(df[col].median())
+
+for col in categorical_cols:
+    if col != "customerID":
+        df[col] = df[col].replace(r"^\s*$", np.nan, regex=True)
+        if not df[col].mode().empty:
+            df[col] = df[col].fillna(df[col].mode()[0])
+        df[col] = df[col].astype(str).str.strip()
+
+if "tenure" in df.columns and "MonthlyCharges" in df.columns:
+    df["Estimated_Lifetime_Charges"] = (
+        df["tenure"] * df["MonthlyCharges"]
+    )
+
+for col in numeric_cols:
+    q1 = df[col].quantile(0.25)
+    q3 = df[col].quantile(0.75)
+    iqr = q3 - q1
+
+    df[col + "_OutlierFlag"] = (
+        (df[col] < q1 - 1.5 * iqr) |
+        (df[col] > q3 + 1.5 * iqr)
+    )
+
+print("\nCleaned Dataset:")
+print(df.head())
+
+print("\nCleaned Dataset Shape:")
+print(df.shape)
+
+print("\nRemaining Missing Values:")
+print(df.isnull().sum())
+
+df.to_csv("Telecom_Customer_Churn_Cleaned.csv", index=False)
+
+print("\nCleaned Dataset Saved Successfully!")
+print("File Location:", os.path.abspath(
+    "Telecom_Customer_Churn_Cleaned.csv"
+))

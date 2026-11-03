@@ -1,0 +1,128 @@
+https://gist.githubusercontent.com/meghshah612/41b6004cb3aab1a56e40dafdc382cad3/raw/1c4ec8147d0bf24984e6e5fbf9918dce055cd0b9/stock-market.csv
+
+
+import subprocess
+import sys
+
+subprocess.check_call([
+    sys.executable, "-m", "pip", "install",
+    "pandas", "matplotlib", "seaborn", "statsmodels"
+])
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from statsmodels.tsa.arima.model import ARIMA
+
+df = pd.read_csv("Stock_Prices.csv")
+
+df.columns = df.columns.str.strip()
+
+print("First Five Rows:")
+print(df.head())
+
+print("\nDataset Information:")
+print(df.info())
+
+df["Date"] = pd.to_datetime(
+    df["Date"], errors="coerce", dayfirst=True
+)
+
+for col in df.columns:
+    if col != "Date":
+        df[col] = pd.to_numeric(
+            df[col].astype(str).str.replace(
+                r"[$,]", "", regex=True
+            ),
+            errors="coerce"
+        )
+
+df = df.dropna(subset=["Date", "Close"])
+df = df.sort_values("Date")
+df = df.drop_duplicates(subset=["Date"])
+df = df.set_index("Date")
+
+plt.figure(figsize=(10, 4))
+plt.plot(df.index, df["Close"], label="Closing Price")
+plt.title("Historical Closing Prices")
+plt.xlabel("Date")
+plt.ylabel("Price")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+df["MA_7"] = df["Close"].rolling(7).mean()
+df["MA_30"] = df["Close"].rolling(30).mean()
+
+df[["Close", "MA_7", "MA_30"]].plot(
+    figsize=(10, 5),
+    title="Closing Price and Moving Averages"
+)
+
+plt.xlabel("Date")
+plt.ylabel("Price")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+monthly = df["Close"].resample("ME").mean()
+
+monthly.plot(
+    figsize=(10, 4),
+    title="Monthly Average Closing Price"
+)
+
+plt.xlabel("Month")
+plt.ylabel("Average Closing Price")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+cols = ["Close"]
+
+if "Volume" in df.columns:
+    cols.append("Volume")
+
+corr = df[cols].corr()
+
+print("\nCorrelation Matrix:")
+print(corr)
+
+plt.figure(figsize=(6, 4))
+sns.heatmap(
+    corr,
+    annot=True,
+    vmin=-1,
+    vmax=1,
+    cmap="coolwarm"
+)
+
+plt.title("Correlation Matrix")
+plt.tight_layout()
+plt.show()
+
+series = df["Close"].dropna().astype(float)
+
+if len(series) >= 20:
+    model = ARIMA(series, order=(1, 1, 1)).fit()
+
+    forecast = model.forecast(steps=10)
+
+    print("\nForecast for Next 10 Observations:")
+    print(forecast)
+
+    plt.figure(figsize=(10, 4))
+    plt.plot(series.tail(60), label="Recent History")
+    plt.plot(forecast, marker="o", label="Forecast")
+    plt.title("ARIMA Forecast")
+    plt.xlabel("Date / Observation")
+    plt.ylabel("Closing Price")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+else:
+    print("At least 20 observations are required.")
+
+print("\nTime Series Analysis Completed Successfully!")

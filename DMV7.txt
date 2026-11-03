@@ -1,0 +1,91 @@
+
+https://raw.githubusercontent.com/nawaz62/retail-sales-analysis/main/retail_sales_raw.csv
+import subprocess
+import sys
+
+subprocess.check_call([
+    sys.executable, "-m", "pip", "install",
+    "pandas", "matplotlib", "openpyxl"
+])
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("sales_data.csv")
+
+df.columns = df.columns.str.strip()
+
+print("CSV Data:")
+print(df.head())
+
+df.to_excel("sales.xlsx", index=False)
+df.to_json("sales.json", orient="records", indent=4)
+
+excel_df = pd.read_excel("sales.xlsx")
+json_df = pd.read_json("sales.json")
+
+print("\nExcel Data:")
+print(excel_df.head())
+
+print("\nJSON Data:")
+print(json_df.head())
+
+combined_df = pd.concat(
+    [df, excel_df, json_df],
+    ignore_index=True
+)
+
+print("\nCombined Data:")
+print(combined_df.head())
+
+combined_df = combined_df.drop_duplicates()
+
+combined_df["Sales"] = pd.to_numeric(
+    combined_df["Sales"], errors="coerce"
+)
+
+combined_df["Quantity"] = pd.to_numeric(
+    combined_df["Quantity"], errors="coerce"
+)
+
+combined_df = combined_df.dropna(
+    subset=["OrderID", "Region", "Category", "Sales"]
+)
+
+combined_df["Quantity"] = combined_df["Quantity"].fillna(0)
+
+print("\nCleaned Data:")
+print(combined_df.head())
+
+print("\nDataset Information:")
+print(combined_df.info())
+
+print("\nSales Summary:")
+print(combined_df["Sales"].describe())
+
+region_sales = combined_df.groupby("Region")["Sales"].sum()
+
+print("\nSales by Region:")
+print(region_sales)
+
+category_sales = combined_df.groupby("Category")["Sales"].sum()
+
+print("\nSales by Category:")
+print(category_sales)
+
+category_sales.plot(
+    kind="bar",
+    title="Total Sales by Category",
+    xlabel="Category",
+    ylabel="Sales"
+)
+
+plt.tight_layout()
+plt.show()
+
+combined_df.to_csv("cleaned_sales.csv", index=False)
+combined_df.to_excel("cleaned_sales.xlsx", index=False)
+
+print("\nFiles Saved Successfully!")
+print("1. cleaned_sales.csv")
+print("2. cleaned_sales.xlsx")

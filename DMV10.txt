@@ -1,0 +1,94 @@
+https://raw.githubusercontent.com/rskworld/housing-prices/main/housing_prices.csv
+import subprocess
+import sys
+
+subprocess.check_call([
+    sys.executable, "-m", "pip", "install",
+    "pandas", "matplotlib"
+])
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv("RealEstate_Prices.csv")
+
+df.columns = (
+    df.columns.str.strip().str.lower()
+    .str.replace(r"[^a-z0-9]+", "_", regex=True)
+    .str.strip("_")
+)
+
+print("First Five Rows:")
+print(df.head())
+
+print("\nDataset Information:")
+print(df.info())
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+if "saleprice" in df.columns:
+    df["saleprice"] = pd.to_numeric(
+        df["saleprice"], errors="coerce"
+    )
+    df = df.dropna(subset=["saleprice"])
+    df = df[df["saleprice"] > 0]
+
+if "bedrooms" in df.columns:
+    df["bedrooms"] = pd.to_numeric(
+        df["bedrooms"], errors="coerce"
+    )
+    df["bedrooms"] = df["bedrooms"].fillna(
+        df["bedrooms"].median()
+    )
+
+if "saledate" in df.columns:
+    df["saledate"] = pd.to_datetime(
+        df["saledate"], errors="coerce"
+    )
+
+for col in ["neighborhood", "propertytype"]:
+    if col in df.columns:
+        df[col] = df[col].astype("string").str.strip()
+        df[col] = df[col].replace("", pd.NA)
+
+        if not df[col].mode().empty:
+            df[col] = df[col].fillna(df[col].mode()[0])
+
+df = df.drop_duplicates()
+
+if "propertytype" in df.columns:
+    df = pd.get_dummies(
+        df,
+        columns=["propertytype"],
+        dtype=int
+    )
+
+if "neighborhood" in df.columns and "saleprice" in df.columns:
+    summary = df.groupby("neighborhood")["saleprice"].agg(
+        ["count", "mean", "median", "min", "max"]
+    )
+
+    print("\nNeighborhood Summary:")
+    print(summary)
+
+    summary["mean"].plot(
+        kind="bar",
+        title="Average Sale Price by Neighborhood"
+    )
+
+    plt.xlabel("Neighborhood")
+    plt.ylabel("Average Sale Price")
+    plt.tight_layout()
+    plt.show()
+
+print("\nCleaned Dataset:")
+print(df.head())
+
+print("\nDataset Shape:")
+print(df.shape)
+
+df.to_csv("RealEstate_Wrangled.csv", index=False)
+
+print("\nData Wrangling Completed Successfully!")
+print("Saved as RealEstate_Wrangled.csv")

@@ -1,0 +1,67 @@
+
+import subprocess
+import sys
+
+subprocess.check_call([
+    sys.executable, "-m", "pip", "install",
+    "requests", "pandas", "matplotlib"
+])
+
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+import getpass
+import os
+
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
+
+if not API_KEY:
+    API_KEY = getpass.getpass("Enter OpenWeatherMap API Key: ")
+
+CITY = "Pune"
+
+url = "https://api.openweathermap.org/data/2.5/weather"
+
+params = {
+    "q": CITY,
+    "appid": API_KEY,
+    "units": "metric"
+}
+
+response = requests.get(url, params=params, timeout=20)
+
+response.raise_for_status()
+
+data = response.json()
+
+record = {
+    "City": data["name"],
+    "Temperature_C": data["main"]["temp"],
+    "Humidity_pct": data["main"]["humidity"],
+    "Pressure_hPa": data["main"]["pressure"],
+    "Wind_Speed_mps": data.get("wind", {}).get("speed")
+}
+
+df = pd.DataFrame([record])
+
+print("\nCurrent Weather Data:")
+print(df)
+
+print("\nWeather Statistics:")
+print(df.describe())
+
+df.to_csv("weather_data.csv", index=False)
+
+df.set_index("City")[[
+    "Temperature_C", "Humidity_pct"
+]].plot(
+    kind="bar",
+    title="Current Weather Summary"
+)
+
+plt.ylabel("Weather Values")
+plt.tight_layout()
+plt.show()
+
+print("\nWeather Data Saved Successfully!")
+print("File Location:", os.path.abspath("weather_data.csv"))

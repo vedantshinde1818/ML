@@ -1,0 +1,76 @@
+https://raw.githubusercontent.com/cp099/India-Air-Quality-Dataset/main/Hyderabad_AQI_Dataset.csv
+import subprocess
+import sys
+
+subprocess.check_call([
+    sys.executable, "-m", "pip", "install",
+    "pandas", "matplotlib", "seaborn"
+])
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_csv("City_Air_Quality.csv")
+
+print("First Five Rows:")
+print(df.head())
+
+print("\nDataset Columns:")
+print(df.columns.tolist())
+
+df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+
+for col in ["AQI", "PM2.5", "PM10", "CO"]:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+df = df.dropna(subset=["Date"]).sort_values("Date")
+
+if "AQI" in df.columns:
+    plt.figure(figsize=(10, 4))
+    plt.plot(df["Date"], df["AQI"], marker=".")
+    plt.title("AQI Trend Over Time")
+    plt.xlabel("Date")
+    plt.ylabel("AQI")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+pollutants = [
+    c for c in ["PM2.5", "PM10", "CO"] if c in df.columns
+]
+
+if pollutants:
+    df.plot(
+        x="Date",
+        y=pollutants,
+        figsize=(10, 5),
+        title="Pollutant Levels Over Time"
+    )
+    plt.xlabel("Date")
+    plt.ylabel("Pollutant Level")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+if "AQI" in df.columns:
+    plt.figure(figsize=(8, 4))
+    sns.histplot(df["AQI"].dropna(), kde=True)
+    plt.title("Distribution of AQI")
+    plt.xlabel("AQI")
+    plt.ylabel("Frequency")
+    plt.tight_layout()
+    plt.show()
+
+for col in pollutants:
+    if "AQI" in df.columns:
+        plt.figure(figsize=(6, 4))
+        sns.scatterplot(data=df, x=col, y="AQI")
+        plt.title(f"AQI vs {col}")
+        plt.xlabel(col)
+        plt.ylabel("AQI")
+        plt.tight_layout()
+        plt.show()
+
+print("\nData Visualization Completed Successfully!")
